@@ -83,7 +83,7 @@ exports.getCourseById = (req, res) => {
 // Create course (instructor)
 exports.createCourse = (req, res) => {
     try {
-        const { title, description, price, category, level } = req.body;
+        const { title, description, price, category, level, intro_video_url } = req.body;
         const thumbnail = req.file ? `/uploads/thumbnails/${req.file.filename}` : '';
 
         if (!title) {
@@ -91,9 +91,9 @@ exports.createCourse = (req, res) => {
         }
 
         const result = db.prepare(`
-            INSERT INTO courses (title, description, thumbnail, price, category, level, instructor_id, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'approved')
-        `).run(title, description || '', thumbnail, price || 0, category || '', level || 'beginner', req.user.id);
+            INSERT INTO courses (title, description, thumbnail, price, category, level, instructor_id, status, intro_video_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'approved', ?)
+        `).run(title, description || '', thumbnail, price || 0, category || '', level || 'beginner', req.user.id, intro_video_url || '');
 
         const course = db.prepare('SELECT * FROM courses WHERE id = ?').get(result.lastInsertRowid);
 
@@ -108,7 +108,7 @@ exports.createCourse = (req, res) => {
 exports.updateCourse = (req, res) => {
     try {
         const { id } = req.params;
-        const { title, description, price, category, level } = req.body;
+        const { title, description, price, category, level, intro_video_url } = req.body;
         const thumbnail = req.file ? `/uploads/thumbnails/${req.file.filename}` : undefined;
 
         const course = db.prepare('SELECT * FROM courses WHERE id = ?').get(id);
@@ -129,6 +129,7 @@ exports.updateCourse = (req, res) => {
         if (category) { query += ', category = ?'; params.push(category); }
         if (level) { query += ', level = ?'; params.push(level); }
         if (thumbnail) { query += ', thumbnail = ?'; params.push(thumbnail); }
+        if (intro_video_url !== undefined) { query += ', intro_video_url = ?'; params.push(intro_video_url); }
 
         query += ' WHERE id = ?';
         params.push(id);

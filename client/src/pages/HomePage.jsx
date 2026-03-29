@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom';
 import { courseAPI } from '../services/api';
 import { FiArrowRight, FiUsers, FiBookOpen, FiAward, FiSearch, FiPlay, FiStar, FiCheckCircle } from 'react-icons/fi';
 
+function getYouTubeId(url) {
+  if (!url) return null;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?\s]+)/);
+  return match ? match[1] : null;
+}
 export default function HomePage() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,10 +27,10 @@ export default function HomePage() {
   const levelText = { beginner: 'Cơ bản', intermediate: 'Trung cấp', advanced: 'Nâng cao' };
 
   const features = [
-    { icon: <FiPlay />, title: 'Video chất lượng HD', desc: 'Bài giảng được quay với chất lượng cao, rõ ràng và dễ hiểu', color: '#6366f1' },
-    { icon: <FiCheckCircle />, title: 'Chứng chỉ hoàn thành', desc: 'Nhận chứng chỉ sau khi hoàn thành khóa học', color: '#10b981' },
-    { icon: <FiStar />, title: 'Giảng viên uy tín', desc: 'Đội ngũ giảng viên giàu kinh nghiệm trong ngành', color: '#f59e0b' },
-    { icon: <FiUsers />, title: 'Cộng đồng lớn', desc: 'Kết nối với hàng ngàn học viên cùng đam mê', color: '#ef4444' },
+    { icon: <FiPlay />, title: 'Video chất lượng HD', desc: 'Bài giảng được quay với chất lượng cao, rõ ràng và dễ hiểu', color: '#e879a8' },
+    { icon: <FiCheckCircle />, title: 'Chứng chỉ hoàn thành', desc: 'Nhận chứng chỉ sau khi hoàn thành khóa học', color: '#34d399' },
+    { icon: <FiStar />, title: 'Giảng viên uy tín', desc: 'Đội ngũ giảng viên giàu kinh nghiệm trong ngành', color: '#fbbf24' },
+    { icon: <FiUsers />, title: 'Cộng đồng lớn', desc: 'Kết nối với hàng ngàn học viên cùng đam mê', color: '#c084fc' },
   ];
 
   return (
@@ -54,21 +59,21 @@ export default function HomePage() {
         <div className="container">
           <div className="stats-grid" style={{ maxWidth: '900px', margin: '0 auto' }}>
             <div className="stat-card" style={{ textAlign: 'center' }}>
-              <div className="stat-card-icon" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1', margin: '0 auto 16px' }}>
+              <div className="stat-card-icon" style={{ background: 'rgba(232, 121, 168, 0.1)', color: '#e879a8', margin: '0 auto 16px' }}>
                 <FiBookOpen />
               </div>
               <div className="stat-card-value">100+</div>
               <div className="stat-card-label">Khóa học</div>
             </div>
             <div className="stat-card" style={{ textAlign: 'center' }}>
-              <div className="stat-card-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', margin: '0 auto 16px' }}>
+              <div className="stat-card-icon" style={{ background: 'rgba(52, 211, 153, 0.1)', color: '#34d399', margin: '0 auto 16px' }}>
                 <FiUsers />
               </div>
               <div className="stat-card-value">5,000+</div>
               <div className="stat-card-label">Học viên</div>
             </div>
             <div className="stat-card" style={{ textAlign: 'center' }}>
-              <div className="stat-card-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', margin: '0 auto 16px' }}>
+              <div className="stat-card-icon" style={{ background: 'rgba(251, 191, 36, 0.1)', color: '#fbbf24', margin: '0 auto 16px' }}>
                 <FiAward />
               </div>
               <div className="stat-card-value">50+</div>
@@ -135,11 +140,12 @@ export default function HomePage() {
                 <Link to={`/courses/${course.id}`} key={course.id} style={{ textDecoration: 'none' }}>
                   <div className="course-card">
                     <div className="course-card-thumbnail">
-                      {course.thumbnail ? (
-                        <img src={`http://localhost:5000${course.thumbnail}`} alt={course.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        <span>📚</span>
-                      )}
+                      {(() => {
+                        const ytId = getYouTubeId(course.intro_video_url);
+                        if (ytId) return <img src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`} alt={course.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+                        if (course.thumbnail) return <img src={`http://localhost:5000${course.thumbnail}`} alt={course.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+                        return <span>📚</span>;
+                      })()}
                     </div>
                     <div className="course-card-body">
                       <span className="course-card-category">{course.category || 'Chung'}</span>
@@ -172,7 +178,7 @@ export default function HomePage() {
       <section style={{ padding: '80px 0', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.05))',
+          background: 'linear-gradient(135deg, rgba(232, 121, 168, 0.08), rgba(192, 132, 252, 0.05))',
           borderTop: '1px solid var(--border-default)',
           borderBottom: '1px solid var(--border-default)',
         }}></div>

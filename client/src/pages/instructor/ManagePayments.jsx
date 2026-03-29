@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { paymentAPI } from '../../services/api';
-import { FiCheck, FiX, FiChevronLeft, FiClock, FiDollarSign } from 'react-icons/fi';
+import { FiCheck, FiX, FiChevronLeft, FiClock, FiDollarSign, FiAlertTriangle } from 'react-icons/fi';
 
 export default function ManagePayments() {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState({ type: '', text: '' });
   const [filter, setFilter] = useState('pending');
+  const [processing, setProcessing] = useState(null); // id being processed
+  const [confirmModal, setConfirmModal] = useState(null); // { id, action: 'confirm'|'reject', payment }
 
   const formatPrice = (price) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price || 0);
   const formatDate = (d) => d ? new Date(d).toLocaleString('vi-VN') : '';
@@ -25,30 +27,29 @@ export default function ManagePayments() {
 
   useEffect(() => { loadPayments(); }, []);
 
-  const handleConfirm = async (id) => {
-    if (!confirm('Xác nhận thanh toán này? Học viên sẽ được mở khóa học.')) return;
+  const handleAction = async () => {
+    if (!confirmModal) return;
+    const { id, action } = confirmModal;
+    setProcessing(id);
+    setConfirmModal(null);
     try {
-      await paymentAPI.confirmPayment(id);
-      setMsg({ type: 'success', text: '✅ Đã xác nhận thanh toán. Học viên đã được mở khóa học.' });
+      if (action === 'confirm') {
+        await paymentAPI.confirmPayment(id);
+        setMsg({ type: 'success', text: '✅ Đã xác nhận thanh toán. Học viên đã được mở khóa học.' });
+      } else {
+        await paymentAPI.rejectPayment(id);
+        setMsg({ type: 'success', text: 'Đã từ chối giao dịch.' });
+      }
       loadPayments();
     } catch (err) {
       setMsg({ type: 'danger', text: err.message });
+    } finally {
+      setProcessing(null);
     }
   };
 
-  const handleReject = async (id) => {
-    if (!confirm('Từ chối giao dịch này?')) return;
-    try {
-      await paymentAPI.rejectPayment(id);
-      setMsg({ type: 'success', text: 'Đã từ chối giao dịch.' });
-      loadPayments();
-    } catch (err) {
-      setMsg({ type: 'danger', text: err.message });
-    }
-  };
-
-  const filtered = filter === 'all' 
-    ? payments 
+  const filtered = filter === 'all'
+    ? payments
     : payments.filter(p => p.status === filter);
 
   const pendingCount = payments.filter(p => p.status === 'pending').length;
@@ -63,7 +64,7 @@ export default function ManagePayments() {
         <div className="page-header">
           <h1 className="page-title">Xác nhận thanh toán</h1>
           <p className="page-subtitle">
-            Xác nhận thanh toán để mở khóa học cho học viên 
+            Xác nhận thanh toán để mở khóa học cho học viên
             {pendingCount > 0 && <span className="badge badge-warning" style={{ marginLeft: '10px' }}>{pendingCount} chờ xác nhận</span>}
           </p>
         </div>
@@ -138,10 +139,18 @@ export default function ManagePayments() {
                     <td>
                       {p.status === 'pending' && (
                         <div style={{ display: 'flex', gap: '6px' }}>
-                          <button className="btn btn-success btn-sm" onClick={() => handleConfirm(p.id)}>
-                            <FiCheck /> Xác nhận
+                          <button
+                            className="btn btn-success btn-sm"
+                            onClick={() => setConfirmModal({ id: p.id, action: 'confirm', payment: p })}
+                            disabled={processing === p.id}
+                          >
+                            {processing === p.id ? '...' : <><FiCheck /> Xác nhận</>}
                           </button>
-                          <button className="btn btn-danger btn-sm" onClick={() => handleReject(p.id)}>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => setConfirmModal({ id: p.id, action: 'reject', payment: p })}
+                            disabled={processing === p.id}
+                          >
                             <FiX /> Từ chối
                           </button>
                         </div>
@@ -151,6 +160,57 @@ export default function ManagePayments() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Confirmation Modal */}
+        {confirmModal && (
+          <div className="modal-overlay" onClick={() => setConfirmModal(null)}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+              <div className="modal-header">
+                <h2 className="modal-title">
+                  {confirmModal.action === 'confirm' ? '✅ Xác nhận thanh toán' : '⚠️ Từ chối giao dịch'}
+                </h2>
+                <button className="modal-close" onClick={() => setConfirmModal(null)}><FiX /></button>
+              </div>
+              <div style={{ padding: '0 24px 24px' }}>
+                {confirmModal.action === 'confirm' ? (
+                  <>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.6 }}>
+                      Bạn có chắc muốn xác nhận thanh toán này? Sau khi xác nhận:
+                    </p>
+                    <ul style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '20px', paddingLeft: '20px', lineHeight: 1.8 }}>
+                      <li>Học viên <strong>{confirmModal.payment.student_name}</strong> sẽ được mở khóa học</li>
+                      <li>Khóa học: <strong>{confirmModal.payment.course_title}</strong></li>
+                      <li>Số tiền: <strong style={{ color: 'var(--success)' }}>{formatPrice(confirmModal.payment.amount)}</strong></li>
+                    </ul>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', padding: '12px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                      <FiAlertTriangle style={{ color: 'var(--danger)', fontSize: '1.2rem', flexShrink: 0 }} />
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+                        Giao dịch sẽ bị từ chối và học viên sẽ không được mở khóa học.
+                      </span>
+                    </div>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '20px' }}>
+                      Học viên: <strong>{confirmModal.payment.student_name}</strong><br />
+                      Khóa học: <strong>{confirmModal.payment.course_title}</strong>
+                    </p>
+                  </>
+                )}
+
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button className="btn btn-secondary" onClick={() => setConfirmModal(null)}>Hủy</button>
+                  <button
+                    className={`btn ${confirmModal.action === 'confirm' ? 'btn-success' : 'btn-danger'}`}
+                    onClick={handleAction}
+                  >
+                    {confirmModal.action === 'confirm' ? <><FiCheck /> Xác nhận thanh toán</> : <><FiX /> Từ chối</>}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

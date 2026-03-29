@@ -26,6 +26,7 @@ app.use('/api/lectures', require('./routes/lectures'));
 app.use('/api/enrollments', require('./routes/enrollments'));
 app.use('/api/progress', require('./routes/progress'));
 app.use('/api/payments', require('./routes/payments'));
+app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/admin', require('./routes/admin'));
 
 // Health check

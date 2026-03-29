@@ -21,6 +21,10 @@ function initDatabase() {
     const schemaPath = path.join(__dirname, '..', 'database', 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
     db.exec(schema);
+
+    // Migrations - add new columns safely
+    try { db.exec("ALTER TABLE courses ADD COLUMN intro_video_url TEXT DEFAULT ''"); } catch (e) { /* column already exists */ }
+
     console.log('✅ Database initialized successfully');
 }
 

@@ -92,6 +92,13 @@ export const paymentAPI = {
     rejectPayment: (id) => request(`/payments/${id}/reject`, { method: 'PUT' }),
 };
 
+// Review API
+export const reviewAPI = {
+    getCourseReviews: (courseId) => request(`/reviews/course/${courseId}`),
+    createReview: (courseId, rating, comment) => request(`/reviews/course/${courseId}`, { method: 'POST', body: { rating, comment } }),
+    deleteReview: (id) => request(`/reviews/${id}`, { method: 'DELETE' }),
+};
+
 // Admin API
 export const adminAPI = {
     getDashboard: () => request('/admin/dashboard'),

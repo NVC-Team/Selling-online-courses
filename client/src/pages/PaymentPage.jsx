@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { courseAPI, paymentAPI } from '../services/api';
-import { FiClock, FiShield, FiCheckCircle } from 'react-icons/fi';
+import { FiClock, FiShield, FiCheckCircle, FiCheck } from 'react-icons/fi';
 
 // Demo bank info - replace with real info
 const BANK_INFO = {
@@ -18,6 +18,7 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [payment, setPayment] = useState(null);
+  const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState('');
 
   const formatPrice = (price) => {
@@ -45,6 +46,10 @@ export default function PaymentPage() {
     }
   };
 
+  const handleConfirmPaid = () => {
+    setConfirmed(true);
+  };
+
   // Generate VietQR URL
   const getQRUrl = () => {
     if (!course || !payment) return '';
@@ -55,19 +60,68 @@ export default function PaymentPage() {
 
   if (loading) return <div className="page"><div className="container"><div className="loading-spinner"><div className="spinner"></div></div></div></div>;
 
-  // QR Code + Waiting state
+  // === STATE 3: Student confirmed they paid → Waiting for instructor ===
+  if (payment && confirmed) {
+    return (
+      <div className="page">
+        <div className="container" style={{ maxWidth: '550px', textAlign: 'center', paddingTop: '60px' }}>
+          <div style={{ 
+            width: '80px', height: '80px', borderRadius: '50%', 
+            background: 'var(--warning-bg)', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+            margin: '0 auto 24px', fontSize: '2rem', color: 'var(--warning)',
+            animation: 'pulse 2s ease-in-out infinite'
+          }}>
+            <FiClock />
+          </div>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: '12px' }}>Đang chờ giảng viên xác nhận</h1>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '32px', lineHeight: 1.7 }}>
+            Hóa đơn của bạn đã được ghi nhận và đang ở trạng thái <strong style={{ color: 'var(--warning)' }}>chờ duyệt</strong>. 
+            Giảng viên sẽ xác nhận thanh toán và <strong style={{ color: 'var(--success)' }}>mở khóa học</strong> cho bạn trong thời gian sớm nhất.
+          </p>
+
+          <div className="card" style={{ marginBottom: '24px', textAlign: 'left' }}>
+            <div className="card-body" style={{ padding: '20px' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '16px', color: 'var(--text-muted)' }}>Thông tin giao dịch</h3>
+              <div style={{ display: 'grid', gap: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Khóa học</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{course?.title}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Mã giao dịch</span>
+                  <code style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--warning)' }}>{payment.transaction_id}</code>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Số tiền</span>
+                  <span style={{ fontWeight: 800, color: 'var(--accent-primary-hover)' }}>{formatPrice(course?.price)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Trạng thái</span>
+                  <span className="badge badge-warning"><FiClock style={{ marginRight: '4px' }} /> Chờ duyệt</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="alert alert-info" style={{ textAlign: 'left' }}>
+            💡 Khi giảng viên xác nhận thanh toán, bạn sẽ được tự động mở khóa học và có thể bắt đầu học ngay.
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '20px' }}>
+            <Link to="/courses" className="btn btn-secondary">Xem khóa học khác</Link>
+            <Link to="/" className="btn btn-outline">Về trang chủ</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // === STATE 2: QR Code displayed → Student scans & transfers ===
   if (payment) {
     return (
       <div className="page">
         <div className="container" style={{ maxWidth: '600px', textAlign: 'center', paddingTop: '40px' }}>
-          <div style={{ 
-            width: '60px', height: '60px', borderRadius: '50%', 
-            background: 'var(--warning-bg)', 
-            display: 'flex', alignItems: 'center', justifyContent: 'center', 
-            margin: '0 auto 20px', fontSize: '1.5rem', color: 'var(--warning)' 
-          }}>
-            <FiClock />
-          </div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '8px' }}>Quét mã QR để thanh toán</h1>
           <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
             Chuyển khoản đúng số tiền và nội dung bên dưới
@@ -90,7 +144,7 @@ export default function PaymentPage() {
                   }}
                 />
                 <div style={{ display: 'none', padding: '40px', color: '#666', fontSize: '0.9rem' }}>
-                  Không tải được mã QR. Vui lòng chuyển khoản thủ công.
+                  Không tải được mã QR. Vui lòng chuyển khoản thủ công theo thông tin bên dưới.
                 </div>
               </div>
 
@@ -122,20 +176,26 @@ export default function PaymentPage() {
             </div>
           </div>
 
-          {/* Status notice */}
-          <div className="alert alert-warning" style={{ textAlign: 'left' }}>
-            <FiClock /> Sau khi chuyển khoản, vui lòng chờ giảng viên xác nhận. Bạn sẽ được mở khóa học ngay khi giảng viên xác nhận thanh toán.
-          </div>
+          {/* Confirm paid button */}
+          <button 
+            className="btn btn-success w-full btn-lg" 
+            onClick={handleConfirmPaid}
+            style={{ marginBottom: '12px' }}
+          >
+            <FiCheck /> Tôi đã chuyển khoản xong
+          </button>
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '16px' }}>
-            <Link to={`/courses/${courseId}`} className="btn btn-secondary">← Quay lại khóa học</Link>
-            <Link to="/courses" className="btn btn-outline">Xem khóa học khác</Link>
-          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
+            Ấn nút trên sau khi bạn đã chuyển khoản thành công
+          </p>
+
+          <Link to={`/courses/${courseId}`} className="btn btn-secondary">← Quay lại khóa học</Link>
         </div>
       </div>
     );
   }
 
+  // === STATE 1: Initial → Show course info + pay button ===
   return (
     <div className="page">
       <div className="container" style={{ maxWidth: '600px' }}>

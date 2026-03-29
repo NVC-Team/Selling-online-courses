@@ -67,6 +67,23 @@ exports.getLectureById = (req, res) => {
             }
         }
 
+        // Sequential unlock check: ensure previous lecture is completed
+        if (req.user && lecture.instructor_id !== req.user.id && req.user.role !== 'admin') {
+            const previousLecture = db.prepare(
+                'SELECT id FROM lectures WHERE course_id = ? AND order_index < ? ORDER BY order_index DESC LIMIT 1'
+            ).get(lecture.course_id, lecture.order_index);
+
+            if (previousLecture) {
+                const prevProgress = db.prepare(
+                    'SELECT is_completed FROM lecture_progress WHERE user_id = ? AND lecture_id = ?'
+                ).get(req.user.id, previousLecture.id);
+
+                if (!prevProgress || !prevProgress.is_completed) {
+                    return res.status(403).json({ message: 'Bạn cần hoàn thành bài giảng trước đó để mở khóa bài này' });
+                }
+            }
+        }
+
         // Get progress if user is logged in
         let progress = null;
         if (req.user) {

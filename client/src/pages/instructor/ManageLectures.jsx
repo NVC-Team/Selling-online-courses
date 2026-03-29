@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { lectureAPI } from '../../services/api';
-import { FiPlus, FiEdit, FiTrash2, FiX, FiYoutube, FiChevronLeft } from 'react-icons/fi';
+import { lectureAPI, courseAPI } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { FiPlus, FiEdit, FiTrash2, FiX, FiYoutube, FiChevronLeft, FiEye } from 'react-icons/fi';
 
 export default function ManageLectures() {
   const { courseId } = useParams();
+  const { user } = useAuth();
+  const [course, setCourse] = useState(null);
   const [lectures, setLectures] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -12,14 +15,20 @@ export default function ManageLectures() {
   const [form, setForm] = useState({ title: '', description: '', duration: '', is_free: false, youtube_url: '' });
   const [msg, setMsg] = useState({ type: '', text: '' });
 
-  const loadLectures = () => {
-    lectureAPI.getByCourse(courseId)
-      .then(data => setLectures(data.lectures))
-      .catch(() => {})
+  const isOwner = course && user && (course.instructor_id === user.id || user.role === 'admin');
+
+  const loadData = () => {
+    Promise.all([
+      courseAPI.getCourseById(courseId),
+      lectureAPI.getByCourse(courseId)
+    ]).then(([courseData, lectureData]) => {
+      setCourse(courseData.course);
+      setLectures(lectureData.lectures);
+    }).catch(() => {})
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadLectures(); }, [courseId]);
+  useEffect(() => { loadData(); }, [courseId]);
 
   const openCreate = () => {
     setEditing(null);
@@ -29,12 +38,12 @@ export default function ManageLectures() {
 
   const openEdit = (l) => {
     setEditing(l);
-    setForm({ 
-      title: l.title, 
-      description: l.description, 
-      duration: l.duration, 
-      is_free: !!l.is_free, 
-      youtube_url: l.video_url || '' 
+    setForm({
+      title: l.title,
+      description: l.description,
+      duration: l.duration,
+      is_free: !!l.is_free,
+      youtube_url: l.video_url || ''
     });
     setShowModal(true);
   };
@@ -59,7 +68,7 @@ export default function ManageLectures() {
         setMsg({ type: 'success', text: 'Thêm bài giảng thành công' });
       }
       setShowModal(false);
-      loadLectures();
+      loadData();
     } catch (err) {
       setMsg({ type: 'danger', text: err.message });
     }
@@ -69,13 +78,13 @@ export default function ManageLectures() {
     if (!confirm('Xóa bài giảng này?')) return;
     try {
       await lectureAPI.delete(id);
-      loadLectures();
+      setMsg({ type: 'success', text: 'Đã xóa bài giảng' });
+      loadData();
     } catch (err) {
       setMsg({ type: 'danger', text: err.message });
     }
   };
 
-  // Extract YouTube ID for thumbnail preview
   const getYouTubeId = (url) => {
     if (!url) return null;
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?\s]+)/);
@@ -86,13 +95,34 @@ export default function ManageLectures() {
     <div className="page">
       <div className="container">
         <div className="breadcrumb">
-          <Link to="/instructor"><FiChevronLeft /> Quay lại</Link>
+          <Link to="/instructor/courses"><FiChevronLeft /> Quay lại</Link>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-          <h1 className="page-title">Quản lý bài giảng</h1>
-          <button className="btn btn-primary" onClick={openCreate}><FiPlus /> Thêm bài giảng</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div>
+            <h1 className="page-title" style={{ marginBottom: '4px' }}>
+              {isOwner ? 'Quản lý bài giảng' : 'Xem bài giảng'}
+            </h1>
+            {course && (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: 0 }}>
+                Khóa học: <strong>{course.title}</strong>
+                {!isOwner && course.instructor_name && (
+                  <span> • Giảng viên: {course.instructor_name}</span>
+                )}
+              </p>
+            )}
+          </div>
+          {isOwner && (
+            <button className="btn btn-primary" onClick={openCreate}><FiPlus /> Thêm bài giảng</button>
+          )}
         </div>
+
+        {!isOwner && !loading && (
+          <div className="alert alert-info" style={{ marginBottom: '20px', background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.3)', color: 'var(--text-primary)', borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: '0.88rem' }}>
+            <FiEye style={{ marginRight: '6px' }} />
+            Bạn đang xem bài giảng của giảng viên khác. Chỉ có thể xem, không thể chỉnh sửa.
+          </div>
+        )}
 
         {msg.text && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
 
@@ -101,8 +131,10 @@ export default function ManageLectures() {
         ) : lectures.length === 0 ? (
           <div className="empty-state">
             <h3>Chưa có bài giảng nào</h3>
-            <p>Thêm bài giảng đầu tiên cho khóa học</p>
-            <button className="btn btn-primary" onClick={openCreate}><FiPlus /> Thêm bài giảng</button>
+            <p>{isOwner ? 'Thêm bài giảng đầu tiên cho khóa học' : 'Khóa học này chưa có bài giảng nào'}</p>
+            {isOwner && (
+              <button className="btn btn-primary" onClick={openCreate}><FiPlus /> Thêm bài giảng</button>
+            )}
           </div>
         ) : (
           <div className="lecture-list" style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-default)' }}>
@@ -121,10 +153,12 @@ export default function ManageLectures() {
                 {l.video_url && !getYouTubeId(l.video_url) && (
                   <span className="badge badge-success">Có video</span>
                 )}
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button className="btn btn-secondary btn-sm" onClick={() => openEdit(l)}><FiEdit /></button>
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(l.id)}><FiTrash2 /></button>
-                </div>
+                {isOwner && (
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button className="btn btn-secondary btn-sm" onClick={() => openEdit(l)} title="Sửa"><FiEdit /></button>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(l.id)} title="Xóa"><FiTrash2 /></button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -158,17 +192,17 @@ export default function ManageLectures() {
                 </div>
                 <div className="form-group">
                   <label className="form-label"><FiYoutube style={{ marginRight: '6px', color: '#FF0000' }} />Link YouTube</label>
-                  <input 
-                    type="url" 
-                    className="form-input" 
-                    value={form.youtube_url} 
+                  <input
+                    type="url"
+                    className="form-input"
+                    value={form.youtube_url}
                     onChange={e => setForm({ ...form, youtube_url: e.target.value })}
                     placeholder="https://www.youtube.com/watch?v=..."
                   />
                   <span className="form-hint">Dán link video từ YouTube (ví dụ: https://youtube.com/watch?v=abc123)</span>
                   {form.youtube_url && getYouTubeId(form.youtube_url) && (
                     <div style={{ marginTop: '12px', borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '16/9', maxWidth: '300px' }}>
-                      <img 
+                      <img
                         src={`https://img.youtube.com/vi/${getYouTubeId(form.youtube_url)}/mqdefault.jpg`}
                         alt="Video preview"
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}

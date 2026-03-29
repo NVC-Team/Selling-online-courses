@@ -3,6 +3,13 @@ import { Link } from 'react-router-dom';
 import { courseAPI } from '../services/api';
 import { FiSearch } from 'react-icons/fi';
 
+function getYouTubeId(url) {
+  if (!url) return null;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?\s]+)/);
+  return match ? match[1] : null;
+}
+
+
 export default function CoursesPage() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -103,11 +110,12 @@ export default function CoursesPage() {
                 <Link to={`/courses/${course.id}`} key={course.id} style={{ textDecoration: 'none' }}>
                   <div className="course-card">
                     <div className="course-card-thumbnail">
-                      {course.thumbnail ? (
-                        <img src={`http://localhost:5000${course.thumbnail}`} alt={course.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        <span>📚</span>
-                      )}
+                      {(() => {
+                        const ytId = getYouTubeId(course.intro_video_url);
+                        if (ytId) return <img src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`} alt={course.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+                        if (course.thumbnail) return <img src={`http://localhost:5000${course.thumbnail}`} alt={course.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+                        return <span>📚</span>;
+                      })()}
                     </div>
                     <div className="course-card-body">
                       <span className="course-card-category">{course.category || 'Chung'}</span>

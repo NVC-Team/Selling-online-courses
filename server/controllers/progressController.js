@@ -10,6 +10,23 @@ exports.updateProgress = (req, res) => {
             return res.status(404).json({ message: 'Không tìm thấy bài giảng' });
         }
 
+        // Sequential unlock check: verify previous lecture is completed
+        if (is_completed) {
+            const previousLecture = db.prepare(
+                'SELECT id FROM lectures WHERE course_id = ? AND order_index < ? ORDER BY order_index DESC LIMIT 1'
+            ).get(lecture.course_id, lecture.order_index);
+
+            if (previousLecture) {
+                const prevProgress = db.prepare(
+                    'SELECT is_completed FROM lecture_progress WHERE user_id = ? AND lecture_id = ?'
+                ).get(req.user.id, previousLecture.id);
+
+                if (!prevProgress || !prevProgress.is_completed) {
+                    return res.status(403).json({ message: 'Bạn cần hoàn thành bài giảng trước đó' });
+                }
+            }
+        }
+
         const existing = db.prepare(
             'SELECT * FROM lecture_progress WHERE user_id = ? AND lecture_id = ?'
         ).get(req.user.id, lecture_id);
@@ -56,27 +73,43 @@ exports.updateProgress = (req, res) => {
     }
 };
 
-// Get progress for a course
+// Get progress for a course (with sequential unlock info)
 exports.getCourseProgress = (req, res) => {
     try {
         const { courseId } = req.params;
 
         const lectures = db.prepare(`
             SELECT l.id, l.title, l.order_index, l.duration,
-                   lp.is_completed, lp.watch_time
+                   COALESCE(lp.is_completed, 0) as is_completed, 
+                   COALESCE(lp.watch_time, 0) as watch_time
             FROM lectures l
             LEFT JOIN lecture_progress lp ON l.id = lp.lecture_id AND lp.user_id = ?
             WHERE l.course_id = ?
             ORDER BY l.order_index
         `).all(req.user.id, courseId);
 
+        // Calculate is_locked for each lecture
+        const lecturesWithLock = lectures.map((lecture, index) => {
+            let is_locked = false;
+            if (index > 0) {
+                // Locked if previous lecture is not completed
+                is_locked = !lectures[index - 1].is_completed;
+            }
+            return { ...lecture, is_locked };
+        });
+
         const enrollment = db.prepare(
             'SELECT progress_percent FROM enrollments WHERE user_id = ? AND course_id = ?'
         ).get(req.user.id, courseId);
 
+        const totalLectures = lectures.length;
+        const completedCount = lectures.filter(l => l.is_completed).length;
+
         res.json({
-            lectures,
-            progress_percent: enrollment ? enrollment.progress_percent : 0
+            lectures: lecturesWithLock,
+            progress_percent: enrollment ? enrollment.progress_percent : 0,
+            total_lectures: totalLectures,
+            completed_lectures: completedCount
         });
     } catch (error) {
         console.error('Get progress error:', error);

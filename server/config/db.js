@@ -24,6 +24,7 @@ function initDatabase() {
 
     // Migrations - add new columns safely
     try { db.exec("ALTER TABLE courses ADD COLUMN intro_video_url TEXT DEFAULT ''"); } catch (e) { /* column already exists */ }
+    try { db.exec("ALTER TABLE courses ADD COLUMN duration_days INTEGER DEFAULT 0"); } catch (e) { /* column already exists */ }
 
     console.log('✅ Database initialized successfully');
 }

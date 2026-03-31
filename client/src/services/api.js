@@ -107,5 +107,6 @@ export const adminAPI = {
     getAllUsers: () => request('/admin/users'),
     updateUserRole: (id, role) => request(`/admin/users/${id}/role`, { method: 'PUT', body: { role } }),
     toggleUserActive: (id) => request(`/admin/users/${id}/toggle-active`, { method: 'PUT' }),
+    resetUserPassword: (id) => request(`/admin/users/${id}/reset-password`, { method: 'PUT' }),
     getRevenue: () => request('/admin/revenue'),
 };

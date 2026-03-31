@@ -37,15 +37,40 @@ exports.getMyEnrollments = (req, res) => {
     try {
         const enrollments = db.prepare(`
             SELECT e.*, c.title, c.thumbnail, c.category, c.level, c.total_lectures, c.total_duration,
+                   c.duration_days,
                    u.full_name as instructor_name
             FROM enrollments e
             JOIN courses c ON e.course_id = c.id
             JOIN users u ON c.instructor_id = u.id
-            WHERE e.user_id = ? AND e.status = 'active'
+            WHERE e.user_id = ? AND e.status IN ('active', 'expired')
             ORDER BY e.enrolled_at DESC
         `).all(req.user.id);
 
-        res.json({ enrollments });
+        const now = new Date();
+        const result = [];
+
+        for (const e of enrollments) {
+            // Kiểm tra hết hạn
+            if (e.duration_days && e.duration_days > 0 && e.status === 'active') {
+                const enrolledAt = new Date(e.enrolled_at);
+                const expiresAt = new Date(enrolledAt.getTime() + e.duration_days * 24 * 60 * 60 * 1000);
+                
+                if (now > expiresAt) {
+                    // Tự động thu hồi - đánh dấu hết hạn
+                    db.prepare(`UPDATE enrollments SET status = 'expired' WHERE id = ?`).run(e.id);
+                    e.status = 'expired';
+                }
+
+                e.expires_at = expiresAt.toISOString();
+                e.days_remaining = Math.max(0, Math.ceil((expiresAt - now) / (24 * 60 * 60 * 1000)));
+            } else {
+                e.expires_at = null;
+                e.days_remaining = null;
+            }
+            result.push(e);
+        }
+
+        res.json({ enrollments: result });
     } catch (error) {
         console.error('Get enrollments error:', error);
         res.status(500).json({ message: 'Lỗi server' });

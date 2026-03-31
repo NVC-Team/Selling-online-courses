@@ -12,6 +12,7 @@ router.put('/courses/:id/status', adminController.updateCourseStatus);
 router.get('/users', adminController.getAllUsers);
 router.put('/users/:id/role', adminController.updateUserRole);
 router.put('/users/:id/toggle-active', adminController.toggleUserActive);
+router.put('/users/:id/reset-password', adminController.resetUserPassword);
 router.get('/revenue', adminController.getRevenue);
 
 module.exports = router;

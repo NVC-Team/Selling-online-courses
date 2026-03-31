@@ -41,7 +41,8 @@ export default function Navbar() {
             </Link>
           )}
           
-          {user && (user.role === 'instructor' || user.role === 'admin') && (
+          {/* Chỉ hiện tab Giảng viên cho role instructor, KHÔNG hiện cho admin */}
+          {user && user.role === 'instructor' && (
             <Link to="/instructor" className={isActive('/instructor')} onClick={() => setMenuOpen(false)}>
               Giảng viên
             </Link>
@@ -88,7 +89,8 @@ export default function Navbar() {
                     <Link to="/change-password" onClick={() => setDropdownOpen(false)}>
                       <FiLock /> Đổi mật khẩu
                     </Link>
-                    {(user.role === 'instructor' || user.role === 'admin') && (
+                    {/* Chỉ hiện cho instructor, KHÔNG hiện cho admin */}
+                    {user.role === 'instructor' && (
                       <Link to="/instructor" onClick={() => setDropdownOpen(false)}>
                         <FiGrid /> Quản lý khóa học
                       </Link>

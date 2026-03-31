@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS courses (
     total_lectures INTEGER DEFAULT 0,
     total_duration INTEGER DEFAULT 0,
     intro_video_url TEXT DEFAULT '',
+    duration_days INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (instructor_id) REFERENCES users(id)
@@ -51,7 +52,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
     user_id INTEGER NOT NULL,
     course_id INTEGER NOT NULL,
     enrolled_at TEXT DEFAULT (datetime('now')),
-    status TEXT CHECK(status IN ('active', 'completed', 'cancelled')) DEFAULT 'active',
+    status TEXT CHECK(status IN ('active', 'completed', 'cancelled', 'expired')) DEFAULT 'active',
     progress_percent REAL DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (course_id) REFERENCES courses(id),

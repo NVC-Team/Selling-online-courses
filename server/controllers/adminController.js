@@ -1,4 +1,5 @@
 const { db } = require('../config/db');
+const bcrypt = require('bcryptjs');
 
 // Get all courses for admin (including pending)
 exports.getAllCourses = (req, res) => {
@@ -152,6 +153,26 @@ exports.getRevenue = (req, res) => {
         res.json({ stats, monthlyRevenue, courseRevenue });
     } catch (error) {
         console.error('Get revenue error:', error);
+        res.status(500).json({ message: 'Lỗi server' });
+    }
+};
+
+// Reset user password to default (1234)
+exports.resetUserPassword = (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+        if (!user) {
+            return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+        }
+
+        const hashedPassword = bcrypt.hashSync('1234', 10);
+        db.prepare(`UPDATE users SET password = ?, updated_at = datetime('now') WHERE id = ?`).run(hashedPassword, id);
+
+        res.json({ message: 'Đã đặt lại mật khẩu về 1234' });
+    } catch (error) {
+        console.error('Reset password error:', error);
         res.status(500).json({ message: 'Lỗi server' });
     }
 };

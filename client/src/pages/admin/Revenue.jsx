@@ -29,17 +29,17 @@ export default function Revenue() {
 
         <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
           <div className="stat-card">
-            <div className="stat-card-icon" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}><FiDollarSign /></div>
+            <div className="stat-card-icon" style={{ background: 'rgba(0, 255, 136, 0.1)', color: '#00ff88' }}><FiDollarSign /></div>
             <div className="stat-card-value" style={{ fontSize: '1.4rem' }}>{formatPrice(stats.totalRevenue)}</div>
             <div className="stat-card-label">Tổng doanh thu</div>
           </div>
           <div className="stat-card">
-            <div className="stat-card-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}><FiShoppingCart /></div>
+            <div className="stat-card-icon" style={{ background: 'rgba(0, 229, 255, 0.1)', color: '#00e5ff' }}><FiShoppingCart /></div>
             <div className="stat-card-value">{stats.totalEnrollments}</div>
             <div className="stat-card-label">Tổng đăng ký</div>
           </div>
           <div className="stat-card">
-            <div className="stat-card-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}><FiTrendingUp /></div>
+            <div className="stat-card-icon" style={{ background: 'rgba(255, 171, 0, 0.1)', color: '#ffab00' }}><FiTrendingUp /></div>
             <div className="stat-card-value">{stats.totalCourses}</div>
             <div className="stat-card-label">Khóa học hoạt động</div>
           </div>
@@ -60,7 +60,7 @@ export default function Revenue() {
                         <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{m.month}</div>
                         <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{m.transactions} giao dịch</div>
                       </div>
-                      <span style={{ fontWeight: 700, color: 'var(--success)' }}>{formatPrice(m.revenue)}</span>
+                      <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>{formatPrice(m.revenue)}</span>
                     </div>
                   ))}
                 </div>
@@ -83,7 +83,7 @@ export default function Revenue() {
                       <div key={c.course_id} style={{ marginBottom: '16px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.85rem' }}>
                           <span style={{ fontWeight: 600 }}>{c.title}</span>
-                          <span style={{ color: 'var(--success)' }}>{formatPrice(c.revenue)}</span>
+                          <span style={{ color: 'var(--accent-primary)' }}>{formatPrice(c.revenue)}</span>
                         </div>
                         <div className="progress-bar">
                           <div className="progress-bar-fill" style={{ width: `${barWidth}%` }}></div>

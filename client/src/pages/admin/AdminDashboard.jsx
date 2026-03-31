@@ -30,22 +30,22 @@ export default function AdminDashboard() {
 
         <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <div className="stat-card">
-            <div className="stat-card-icon" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}><FiUsers /></div>
+            <div className="stat-card-icon" style={{ background: 'rgba(0, 255, 136, 0.1)', color: '#00ff88' }}><FiUsers /></div>
             <div className="stat-card-value">{stats.totalUsers}</div>
             <div className="stat-card-label">Người dùng</div>
           </div>
           <div className="stat-card">
-            <div className="stat-card-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}><FiBookOpen /></div>
+            <div className="stat-card-icon" style={{ background: 'rgba(0, 229, 255, 0.1)', color: '#00e5ff' }}><FiBookOpen /></div>
             <div className="stat-card-value">{stats.totalCourses}</div>
             <div className="stat-card-label">Tổng khóa học</div>
           </div>
           <div className="stat-card">
-            <div className="stat-card-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}><FiClock /></div>
+            <div className="stat-card-icon" style={{ background: 'rgba(255, 171, 0, 0.1)', color: '#ffab00' }}><FiClock /></div>
             <div className="stat-card-value">{stats.pendingCourses}</div>
             <div className="stat-card-label">Chờ duyệt</div>
           </div>
           <div className="stat-card">
-            <div className="stat-card-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}><FiDollarSign /></div>
+            <div className="stat-card-icon" style={{ background: 'rgba(0, 230, 118, 0.1)', color: '#00e676' }}><FiDollarSign /></div>
             <div className="stat-card-value" style={{ fontSize: '1.2rem' }}>{formatPrice(stats.totalRevenue)}</div>
             <div className="stat-card-label">Tổng doanh thu</div>
           </div>

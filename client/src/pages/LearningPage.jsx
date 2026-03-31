@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { lectureAPI, progressAPI } from '../services/api';
-import { FiCheck, FiPlay, FiChevronLeft, FiLock, FiAward } from 'react-icons/fi';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { lectureAPI, progressAPI, enrollmentAPI } from '../services/api';
+import { FiCheck, FiPlay, FiChevronLeft, FiLock, FiAward, FiAlertTriangle, FiClock } from 'react-icons/fi';
 
 // Extract YouTube video ID from various URL formats
 function getYouTubeId(url) {
@@ -12,6 +12,7 @@ function getYouTubeId(url) {
 
 export default function LearningPage() {
   const { courseId } = useParams();
+  const navigate = useNavigate();
   const [lectures, setLectures] = useState([]);
   const [currentLecture, setCurrentLecture] = useState(null);
   const [progressData, setProgressData] = useState([]);
@@ -19,17 +20,32 @@ export default function LearningPage() {
   const [totalLectures, setTotalLectures] = useState(0);
   const [completedLectures, setCompletedLectures] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [expired, setExpired] = useState(false);
+  const [daysRemaining, setDaysRemaining] = useState(null);
 
   const loadData = () => {
     return Promise.all([
       lectureAPI.getByCourse(courseId),
-      progressAPI.getCourseProgress(courseId)
-    ]).then(([lectureData, progData]) => {
+      progressAPI.getCourseProgress(courseId),
+      enrollmentAPI.getMyEnrollments()
+    ]).then(([lectureData, progData, enrollData]) => {
       setLectures(lectureData.lectures);
       setProgressData(progData.lectures);
       setProgressPercent(progData.progress_percent);
       setTotalLectures(progData.total_lectures);
       setCompletedLectures(progData.completed_lectures);
+
+      // Check enrollment expiry
+      const enrollment = enrollData.enrollments.find(e => e.course_id == courseId);
+      if (enrollment) {
+        if (enrollment.status === 'expired') {
+          setExpired(true);
+        }
+        if (enrollment.days_remaining !== null && enrollment.days_remaining !== undefined) {
+          setDaysRemaining(enrollment.days_remaining);
+        }
+      }
+
       return { lectureData, progData };
     });
   };
@@ -58,7 +74,7 @@ export default function LearningPage() {
   };
 
   const handleSelectLecture = async (lecture) => {
-    if (isLocked(lecture.id)) return;
+    if (isLocked(lecture.id) || expired) return;
     setCurrentLecture(lecture);
     try {
       const data = await lectureAPI.getById(lecture.id);
@@ -67,7 +83,7 @@ export default function LearningPage() {
   };
 
   const handleComplete = async () => {
-    if (!currentLecture) return;
+    if (!currentLecture || expired) return;
     try {
       const data = await progressAPI.update(currentLecture.id, currentLecture.duration * 60, true);
       setProgressPercent(data.progress_percent);
@@ -94,6 +110,21 @@ export default function LearningPage() {
   };
 
   const renderVideo = () => {
+    if (expired) {
+      return (
+        <div className="video-placeholder" style={{ padding: '40px' }}>
+          <FiAlertTriangle style={{ fontSize: '4rem', opacity: 0.5, color: 'var(--danger)' }} />
+          <h3 style={{ color: 'var(--danger)', marginTop: '12px' }}>Khóa học đã hết hạn</h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+            Thời gian truy cập khóa học đã kết thúc. Liên hệ giảng viên để gia hạn.
+          </p>
+          <Link to="/my-courses" className="btn btn-primary" style={{ marginTop: '16px' }}>
+            Quay lại khóa học của tôi
+          </Link>
+        </div>
+      );
+    }
+
     if (!currentLecture?.video_url) {
       return (
         <div className="video-placeholder">
@@ -141,6 +172,32 @@ export default function LearningPage() {
             <div style={{ flex: 1 }}>
               <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>{currentLecture?.title || 'Chọn bài giảng'}</h2>
             </div>
+            {/* Hiển thị thời hạn còn lại */}
+            {daysRemaining !== null && !expired && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '4px',
+                padding: '4px 12px', borderRadius: 'var(--radius-full)',
+                background: daysRemaining <= 7 ? 'rgba(255, 82, 82, 0.1)' : 'rgba(0, 255, 136, 0.08)',
+                border: `1px solid ${daysRemaining <= 7 ? 'rgba(255, 82, 82, 0.2)' : 'rgba(0, 255, 136, 0.15)'}`,
+                fontSize: '0.78rem', fontWeight: 600,
+                color: daysRemaining <= 7 ? 'var(--danger)' : 'var(--accent-primary)'
+              }}>
+                <FiClock />
+                {daysRemaining <= 0 ? 'Sắp hết hạn' : `Còn ${daysRemaining} ngày`}
+              </div>
+            )}
+            {expired && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '4px',
+                padding: '4px 12px', borderRadius: 'var(--radius-full)',
+                background: 'rgba(255, 82, 82, 0.15)',
+                border: '1px solid rgba(255, 82, 82, 0.3)',
+                fontSize: '0.78rem', fontWeight: 700,
+                color: 'var(--danger)'
+              }}>
+                <FiAlertTriangle /> Đã hết hạn
+              </div>
+            )}
           </div>
 
           {/* Big Progress Bar */}
@@ -162,24 +219,26 @@ export default function LearningPage() {
             {renderVideo()}
           </div>
 
-          <div style={{ padding: '24px', borderTop: '1px solid var(--border-default)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '8px' }}>{currentLecture?.title}</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{currentLecture?.description}</p>
+          {!expired && (
+            <div style={{ padding: '24px', borderTop: '1px solid var(--border-default)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '8px' }}>{currentLecture?.title}</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{currentLecture?.description}</p>
+                </div>
+                {currentLecture && !isCompleted(currentLecture.id) && (
+                  <button className="btn btn-success" onClick={handleComplete}>
+                    <FiCheck /> Đánh dấu hoàn thành
+                  </button>
+                )}
+                {currentLecture && isCompleted(currentLecture.id) && (
+                  <span className="badge badge-success" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+                    <FiCheck /> Đã hoàn thành
+                  </span>
+                )}
               </div>
-              {currentLecture && !isCompleted(currentLecture.id) && (
-                <button className="btn btn-success" onClick={handleComplete}>
-                  <FiCheck /> Đánh dấu hoàn thành
-                </button>
-              )}
-              {currentLecture && isCompleted(currentLecture.id) && (
-                <span className="badge badge-success" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-                  <FiCheck /> Đã hoàn thành
-                </span>
-              )}
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -196,7 +255,7 @@ export default function LearningPage() {
         </div>
         <div className="lecture-list">
           {lectures.map((lecture, idx) => {
-            const locked = isLocked(lecture.id);
+            const locked = isLocked(lecture.id) || expired;
             const completed = isCompleted(lecture.id);
             return (
               <div
@@ -208,11 +267,11 @@ export default function LearningPage() {
                   opacity: locked ? 0.5 : 1,
                   position: 'relative'
                 }}
-                title={locked ? 'Hoàn thành bài trước để mở khóa' : ''}
+                title={expired ? 'Khóa học đã hết hạn' : locked ? 'Hoàn thành bài trước để mở khóa' : ''}
               >
                 <div className="lecture-number" style={{
                   background: completed ? 'var(--success)' : locked ? 'var(--bg-elevated)' : undefined,
-                  color: completed ? '#fff' : locked ? 'var(--text-muted)' : undefined
+                  color: completed ? '#0a0a0a' : locked ? 'var(--text-muted)' : undefined
                 }}>
                   {completed ? <FiCheck /> : locked ? <FiLock style={{ fontSize: '0.75rem' }} /> : idx + 1}
                 </div>

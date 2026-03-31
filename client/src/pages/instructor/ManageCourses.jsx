@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { courseAPI, lectureAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { FiPlus, FiEdit, FiTrash2, FiX, FiYoutube, FiChevronRight, FiEye, FiUser } from 'react-icons/fi';
+import { FiPlus, FiEdit, FiTrash2, FiX, FiYoutube, FiChevronRight, FiEye, FiUser, FiClock } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 
 export default function ManageCourses() {
@@ -12,7 +12,7 @@ export default function ManageCourses() {
   const [tab, setTab] = useState('mine'); // 'mine' | 'all'
   const [showModal, setShowModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
-  const [form, setForm] = useState({ title: '', description: '', price: '', category: '', level: 'beginner', intro_video_url: '' });
+  const [form, setForm] = useState({ title: '', description: '', price: '', category: '', level: 'beginner', intro_video_url: '', duration_days: '' });
   const [lectures, setLectures] = useState([]);
   const [msg, setMsg] = useState({ type: '', text: '' });
   const [submitting, setSubmitting] = useState(false);
@@ -42,14 +42,14 @@ export default function ManageCourses() {
 
   const openCreate = () => {
     setEditingCourse(null);
-    setForm({ title: '', description: '', price: '', category: '', level: 'beginner', intro_video_url: '' });
+    setForm({ title: '', description: '', price: '', category: '', level: 'beginner', intro_video_url: '', duration_days: '' });
     setLectures([]);
     setShowModal(true);
   };
 
   const openEdit = (c) => {
     setEditingCourse(c);
-    setForm({ title: c.title, description: c.description, price: c.price, category: c.category, level: c.level, intro_video_url: c.intro_video_url || '' });
+    setForm({ title: c.title, description: c.description, price: c.price, category: c.category, level: c.level, intro_video_url: c.intro_video_url || '', duration_days: c.duration_days || '' });
     setLectures([]);
     setShowModal(true);
   };
@@ -81,6 +81,7 @@ export default function ManageCourses() {
       formData.append('category', form.category);
       formData.append('level', form.level);
       formData.append('intro_video_url', form.intro_video_url);
+      formData.append('duration_days', form.duration_days || '0');
 
       if (editingCourse) {
         await courseAPI.update(editingCourse.id, formData);
@@ -136,9 +137,9 @@ export default function ManageCourses() {
             onClick={() => setTab('mine')}
             style={{
               flex: 1, padding: '10px 16px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
-              fontWeight: 600, fontSize: '0.88rem', transition: 'all 0.2s',
-              background: tab === 'mine' ? 'var(--primary)' : 'transparent',
-              color: tab === 'mine' ? '#fff' : 'var(--text-secondary)',
+              fontWeight: 600, fontSize: '0.88rem', transition: 'all 0.2s', fontFamily: 'var(--font-family)',
+              background: tab === 'mine' ? 'var(--accent-primary)' : 'transparent',
+              color: tab === 'mine' ? '#0a0a0a' : 'var(--text-secondary)',
             }}
           >
             <FiUser style={{ marginRight: '6px', verticalAlign: 'middle' }} />
@@ -148,9 +149,9 @@ export default function ManageCourses() {
             onClick={() => setTab('all')}
             style={{
               flex: 1, padding: '10px 16px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
-              fontWeight: 600, fontSize: '0.88rem', transition: 'all 0.2s',
-              background: tab === 'all' ? 'var(--primary)' : 'transparent',
-              color: tab === 'all' ? '#fff' : 'var(--text-secondary)',
+              fontWeight: 600, fontSize: '0.88rem', transition: 'all 0.2s', fontFamily: 'var(--font-family)',
+              background: tab === 'all' ? 'var(--accent-primary)' : 'transparent',
+              color: tab === 'all' ? '#0a0a0a' : 'var(--text-secondary)',
             }}
           >
             <FiEye style={{ marginRight: '6px', verticalAlign: 'middle' }} />
@@ -176,6 +177,7 @@ export default function ManageCourses() {
                   {tab === 'all' && <th>Giảng viên</th>}
                   <th>Danh mục</th>
                   <th>Giá</th>
+                  <th>Thời hạn</th>
                   <th>Bài giảng</th>
                   <th>Hành động</th>
                 </tr>
@@ -188,7 +190,7 @@ export default function ManageCourses() {
                       <td>
                         <div style={{ fontWeight: 600 }}>{c.title}</div>
                         {c.intro_video_url && (
-                          <span style={{ fontSize: '0.78rem', color: '#FF0000', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                          <span style={{ fontSize: '0.78rem', color: '#ff4444', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
                             <FiYoutube /> Có video giới thiệu
                           </span>
                         )}
@@ -197,15 +199,15 @@ export default function ManageCourses() {
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <div style={{
-                              width: '24px', height: '24px', borderRadius: '50%', background: 'var(--primary)',
-                              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              width: '24px', height: '24px', borderRadius: '50%', background: 'var(--accent-gradient)',
+                              color: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center',
                               fontSize: '0.7rem', fontWeight: 700, flexShrink: 0
                             }}>
                               {c.instructor_name?.charAt(0)}
                             </div>
                             <span style={{ fontSize: '0.85rem' }}>
                               {c.instructor_name}
-                              {isMine && <span style={{ color: 'var(--primary)', fontWeight: 600, marginLeft: '4px' }}>(Tôi)</span>}
+                              {isMine && <span style={{ color: 'var(--accent-primary)', fontWeight: 600, marginLeft: '4px' }}>(Tôi)</span>}
                             </span>
                           </div>
                         </td>
@@ -213,9 +215,18 @@ export default function ManageCourses() {
                       <td>{c.category}</td>
                       <td>{formatPrice(c.price)}</td>
                       <td>
+                        {c.duration_days && c.duration_days > 0 ? (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--accent-primary)' }}>
+                            <FiClock /> {c.duration_days} ngày
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Vĩnh viễn</span>
+                        )}
+                      </td>
+                      <td>
                         <Link
                           to={`/instructor/courses/${c.id}/lectures`}
-                          style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.88rem' }}
+                          style={{ color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.88rem' }}
                         >
                           {c.total_lectures} bài <FiChevronRight />
                         </Link>
@@ -256,7 +267,7 @@ export default function ManageCourses() {
                   <label className="form-label">Mô tả</label>
                   <textarea className="form-textarea" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                   <div className="form-group">
                     <label className="form-label">Giá (VNĐ)</label>
                     <input type="number" className="form-input" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
@@ -269,6 +280,19 @@ export default function ManageCourses() {
                       <option value="advanced">Nâng cao</option>
                     </select>
                   </div>
+                  <div className="form-group">
+                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <FiClock style={{ color: 'var(--accent-primary)' }} /> Thời hạn (ngày)
+                    </label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={form.duration_days}
+                      onChange={e => setForm({ ...form, duration_days: e.target.value })}
+                      placeholder="0 = Vĩnh viễn"
+                      min="0"
+                    />
+                  </div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Danh mục</label>
@@ -278,7 +302,7 @@ export default function ManageCourses() {
                 {/* YouTube Intro Video */}
                 <div className="form-group" style={{ background: 'var(--bg-elevated)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)' }}>
                   <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <FiYoutube style={{ color: '#FF0000', fontSize: '1.1rem' }} /> Video giới thiệu (YouTube)
+                    <FiYoutube style={{ color: '#ff4444', fontSize: '1.1rem' }} /> Video giới thiệu (YouTube)
                   </label>
                   <input
                     type="url"
@@ -321,7 +345,7 @@ export default function ManageCourses() {
                         border: '1px solid var(--border-default)', marginBottom: '8px'
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Bài {idx + 1}</span>
+                          <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--accent-primary)' }}>Bài {idx + 1}</span>
                           <button type="button" onClick={() => removeLecture(idx)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}>
                             <FiTrash2 />
                           </button>

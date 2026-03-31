@@ -39,17 +39,17 @@ export default function InstructorDashboard() {
 
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-card-icon" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}><FiBookOpen /></div>
+            <div className="stat-card-icon" style={{ background: 'rgba(0, 255, 136, 0.1)', color: '#00ff88' }}><FiBookOpen /></div>
             <div className="stat-card-value">{courses.length}</div>
             <div className="stat-card-label">Khóa học</div>
           </div>
           <div className="stat-card">
-            <div className="stat-card-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}><FiUsers /></div>
+            <div className="stat-card-icon" style={{ background: 'rgba(0, 229, 255, 0.1)', color: '#00e5ff' }}><FiUsers /></div>
             <div className="stat-card-value">{totalStudents}</div>
             <div className="stat-card-label">Học viên</div>
           </div>
           <div className="stat-card">
-            <div className="stat-card-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}><FiDollarSign /></div>
+            <div className="stat-card-icon" style={{ background: 'rgba(255, 171, 0, 0.1)', color: '#ffab00' }}><FiDollarSign /></div>
             <div className="stat-card-value" style={{ fontSize: '1.4rem' }}>{formatPrice(totalRevenue)}</div>
             <div className="stat-card-label">Doanh thu</div>
           </div>

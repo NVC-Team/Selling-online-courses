@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { enrollmentAPI, paymentAPI } from '../services/api';
-import { FiPlay, FiBookOpen, FiClock } from 'react-icons/fi';
+import { FiPlay, FiBookOpen, FiClock, FiAlertTriangle } from 'react-icons/fi';
 
 export default function MyCoursesPage() {
   const [enrollments, setEnrollments] = useState([]);
@@ -29,6 +29,8 @@ export default function MyCoursesPage() {
 
   if (loading) return <div className="page"><div className="container"><div className="loading-spinner"><div className="spinner"></div></div></div></div>;
 
+  const activeEnrollments = enrollments.filter(e => e.status === 'active');
+  const expiredEnrollments = enrollments.filter(e => e.status === 'expired');
   const hasContent = enrollments.length > 0 || pendingPayments.length > 0;
 
   return (
@@ -61,7 +63,7 @@ export default function MyCoursesPage() {
                       {/* Pending overlay badge */}
                       <div style={{
                         position: 'absolute', top: '12px', right: '12px', zIndex: 2,
-                        background: 'rgba(245, 158, 11, 0.9)', color: '#fff',
+                        background: 'rgba(255, 171, 0, 0.9)', color: '#0a0a0a',
                         padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem',
                         fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px',
                         backdropFilter: 'blur(4px)'
@@ -76,7 +78,7 @@ export default function MyCoursesPage() {
                       <div className="course-card-body">
                         <h3 className="course-card-title">{p.course_title}</h3>
                         <div style={{
-                          background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.2)',
+                          background: 'rgba(255, 171, 0, 0.08)', border: '1px solid rgba(255, 171, 0, 0.2)',
                           borderRadius: 'var(--radius-md)', padding: '12px', marginBottom: '12px'
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.82rem' }}>
@@ -105,15 +107,15 @@ export default function MyCoursesPage() {
             )}
 
             {/* Active Enrollments Section */}
-            {enrollments.length > 0 && (
-              <div>
-                {pendingPayments.length > 0 && (
+            {activeEnrollments.length > 0 && (
+              <div style={{ marginBottom: '40px' }}>
+                {(pendingPayments.length > 0 || expiredEnrollments.length > 0) && (
                   <h2 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '16px' }}>
-                    Đang học ({enrollments.length})
+                    Đang học ({activeEnrollments.length})
                   </h2>
                 )}
                 <div className="course-grid">
-                  {enrollments.map(e => (
+                  {activeEnrollments.map(e => (
                     <div key={e.id} className="course-card">
                       <div className="course-card-thumbnail">
                         {e.thumbnail ? (
@@ -123,6 +125,24 @@ export default function MyCoursesPage() {
                       <div className="course-card-body">
                         <span className="course-card-category">{e.category || 'Chung'}</span>
                         <h3 className="course-card-title">{e.title}</h3>
+                        
+                        {/* Hiển thị thời hạn còn lại */}
+                        {e.days_remaining !== null && (
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '6px 10px', borderRadius: 'var(--radius-sm)',
+                            background: e.days_remaining <= 7 ? 'rgba(255, 82, 82, 0.08)' : 'rgba(0, 255, 136, 0.06)',
+                            border: `1px solid ${e.days_remaining <= 7 ? 'rgba(255, 82, 82, 0.2)' : 'rgba(0, 255, 136, 0.15)'}`,
+                            marginBottom: '10px', fontSize: '0.8rem',
+                            color: e.days_remaining <= 7 ? 'var(--danger)' : 'var(--accent-primary)'
+                          }}>
+                            <FiClock />
+                            <span style={{ fontWeight: 600 }}>
+                              {e.days_remaining <= 0 ? 'Sắp hết hạn' : `Còn ${e.days_remaining} ngày`}
+                            </span>
+                          </div>
+                        )}
+
                         <div style={{ marginBottom: '12px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.82rem' }}>
                             <span style={{ color: 'var(--text-muted)' }}>{e.progress_percent >= 100 ? '🎉 Hoàn thành' : 'Tiến độ'}</span>
@@ -140,6 +160,54 @@ export default function MyCoursesPage() {
                           <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{e.instructor_name}</span>
                           <Link to={`/learn/${e.course_id}`} className={`btn ${e.progress_percent >= 100 ? 'btn-success' : 'btn-primary'} btn-sm`}>
                             <FiPlay /> {e.progress_percent > 0 ? (e.progress_percent >= 100 ? 'Xem lại' : 'Học tiếp') : 'Bắt đầu'}
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Expired Enrollments Section */}
+            {expiredEnrollments.length > 0 && (
+              <div>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--danger)' }}>
+                  <FiAlertTriangle />
+                  Đã hết hạn ({expiredEnrollments.length})
+                </h2>
+                <div className="course-grid">
+                  {expiredEnrollments.map(e => (
+                    <div key={e.id} className="course-card course-expired">
+                      <div className="course-card-thumbnail" style={{ opacity: 0.5 }}>
+                        {e.thumbnail ? (
+                          <img src={`http://localhost:5000${e.thumbnail}`} alt={e.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : <span>📚</span>}
+                      </div>
+                      <div className="course-card-body">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <span className="course-card-category">{e.category || 'Chung'}</span>
+                          <span className="badge badge-expired" style={{ fontSize: '0.72rem' }}>
+                            <FiAlertTriangle style={{ marginRight: '3px' }} /> Hết hạn
+                          </span>
+                        </div>
+                        <h3 className="course-card-title" style={{ opacity: 0.7 }}>{e.title}</h3>
+                        <div style={{
+                          background: 'rgba(255, 82, 82, 0.08)', border: '1px solid rgba(255, 82, 82, 0.2)',
+                          borderRadius: 'var(--radius-md)', padding: '12px', marginBottom: '12px',
+                          textAlign: 'center'
+                        }}>
+                          <p style={{ fontSize: '0.82rem', color: 'var(--danger)', margin: 0, fontWeight: 600 }}>
+                            Khóa học đã hết thời hạn truy cập
+                          </p>
+                          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+                            Liên hệ giảng viên để gia hạn
+                          </p>
+                        </div>
+                        <div className="course-card-footer">
+                          <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{e.instructor_name}</span>
+                          <Link to={`/courses/${e.course_id}`} className="btn btn-secondary btn-sm">
+                            Xem chi tiết
                           </Link>
                         </div>
                       </div>
